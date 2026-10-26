@@ -9,6 +9,10 @@ final class RestaurantCell: UITableViewCell {
     private let detailLabel = UILabel()
     private let starsStack = UIStackView()
     private let statusDot = UIView()
+    private let favouriteButton = UIButton(type: .system)
+
+    /// Called when the heart is tapped.
+    var onFavouriteTapped: (() -> Void)?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -35,12 +39,15 @@ final class RestaurantCell: UITableViewCell {
 
         statusDot.layer.cornerRadius = 5
 
+        favouriteButton.tintColor = .systemPink
+        favouriteButton.addAction(UIAction { [weak self] _ in self?.onFavouriteTapped?() }, for: .touchUpInside)
+
         let textStack = UIStackView(arrangedSubviews: [nameLabel, detailLabel, starsStack])
         textStack.axis = .vertical
         textStack.spacing = 4
         textStack.alignment = .leading
 
-        [photoView, textStack, statusDot].forEach {
+        [photoView, textStack, statusDot, favouriteButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview($0)
         }
@@ -55,14 +62,25 @@ final class RestaurantCell: UITableViewCell {
             textStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             textStack.trailingAnchor.constraint(lessThanOrEqualTo: statusDot.leadingAnchor, constant: -8),
 
-            statusDot.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            favouriteButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            favouriteButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            favouriteButton.widthAnchor.constraint(equalToConstant: 44),
+            favouriteButton.heightAnchor.constraint(equalToConstant: 44),
+
+            statusDot.trailingAnchor.constraint(equalTo: favouriteButton.leadingAnchor, constant: -4),
             statusDot.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             statusDot.widthAnchor.constraint(equalToConstant: 10),
             statusDot.heightAnchor.constraint(equalToConstant: 10)
         ])
     }
 
-    func configure(with restaurant: Restaurant) {
+    func setFavourite(_ isFavourite: Bool) {
+        favouriteButton.setImage(UIImage(systemName: isFavourite ? "heart.fill" : "heart"), for: .normal)
+        favouriteButton.accessibilityLabel = isFavourite ? "Remove from favourites" : "Add to favourites"
+    }
+
+    func configure(with restaurant: Restaurant, isFavourite: Bool) {
+        setFavourite(isFavourite)
         photoView.image = UIImage(systemName: restaurant.imageName)
         nameLabel.text = restaurant.name
         detailLabel.text = "\(restaurant.cuisine) · \(restaurant.deliveryMinutes) min · \(PriceFormatter.string(from: restaurant.deliveryFee)) delivery"

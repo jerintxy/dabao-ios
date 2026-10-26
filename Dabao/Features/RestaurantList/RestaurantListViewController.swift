@@ -7,6 +7,7 @@ import UIKit
 final class RestaurantListViewController: UIViewController {
 
     private let service: RestaurantServicing
+    private let favourites: FavouritesStore
 
     private nonisolated enum Section: Hashable, Sendable { case main }
 
@@ -17,6 +18,7 @@ final class RestaurantListViewController: UIViewController {
     private let searchController = UISearchController(searchResultsController: nil)
     private var allRestaurants: [Restaurant] = []
     private var showOpenOnly = false
+    private var showFavouritesOnly = false
     private var sortOption: SortOption = .none
 
     private enum SortOption: String, CaseIterable {
@@ -25,8 +27,10 @@ final class RestaurantListViewController: UIViewController {
         case deliveryTime = "Delivery time"
     }
 
-    init(service: RestaurantServicing = RestaurantService()) {
+    init(service: RestaurantServicing = RestaurantService(),
+         favourites: FavouritesStore = .shared) {
         self.service = service
+        self.favourites = favourites
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -64,6 +68,14 @@ final class RestaurantListViewController: UIViewController {
             self.updateFilterMenu()
             self.applyFilter()
         }
+        let favouritesOnly = UIAction(title: "Favourites only",
+                                      image: UIImage(systemName: "heart"),
+                                      state: showFavouritesOnly ? .on : .off) { [weak self] _ in
+            guard let self else { return }
+            self.showFavouritesOnly.toggle()
+            self.updateFilterMenu()
+            self.applyFilter()
+        }
         let sortActions = SortOption.allCases.map { option in
             UIAction(title: option.rawValue,
                      state: sortOption == option ? .on : .off) { [weak self] _ in
@@ -74,10 +86,10 @@ final class RestaurantListViewController: UIViewController {
             }
         }
         let sortMenu = UIMenu(title: "Sort by", options: .displayInline, children: sortActions)
-        let isActive = showOpenOnly || sortOption != .none
+        let isActive = showOpenOnly || showFavouritesOnly || sortOption != .none
         let icon = isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: icon),
-                                                            menu: UIMenu(children: [openNow, sortMenu]))
+                                                            menu: UIMenu(children: [openNow, favouritesOnly, sortMenu]))
     }
 
     private func setUpTableView() {
@@ -133,10 +145,16 @@ final class RestaurantListViewController: UIViewController {
 extension RestaurantListViewController {
 
     private func makeDataSource() -> UITableViewDiffableDataSource<Section, Restaurant> {
-        UITableViewDiffableDataSource(tableView: tableView) { tableView, indexPath, restaurant in
+        UITableViewDiffableDataSource(tableView: tableView) { [weak self] tableView, indexPath, restaurant in
             let cell = tableView.dequeueReusableCell(withIdentifier: RestaurantCell.reuseIdentifier,
                                                      for: indexPath) as! RestaurantCell
-            cell.configure(with: restaurant)
+            cell.configure(with: restaurant, isFavourite: self?.favourites.isFavourite(restaurant) ?? false)
+            cell.onFavouriteTapped = { [weak self, weak cell] in
+                guard let self else { return }
+                let isFavourite = self.favourites.toggle(restaurant)
+                cell?.setFavourite(isFavourite)
+                if self.showFavouritesOnly { self.applyFilter() }
+            }
             return cell
         }
     }
@@ -162,6 +180,9 @@ extension RestaurantListViewController: UISearchResultsUpdating {
             result = result.filter {
                 $0.name.localizedCaseInsensitiveContains(query) || $0.cuisine.localizedCaseInsensitiveContains(query)
             }
+        }
+        if showFavouritesOnly {
+            result = result.filter(favourites.isFavourite)
         }
         if showOpenOnly {
             result = result.filter(\.isOpen)
