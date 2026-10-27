@@ -29,7 +29,7 @@ final class CartStore {
     }
 
     var total: Decimal {
-        subtotal
+        subtotal + deliveryFee
     }
 
     func quantity(of item: MenuItem) -> Int {
