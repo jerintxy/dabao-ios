@@ -28,6 +28,7 @@ final class MenuPresenterTests: XCTestCase {
         func loadMenu() {}
         func addItem(id: String) { addedIDs.append(id) }
         func removeItem(id: String) {}
+        func refreshCartSummary() {}
     }
 
     final class FakeRouter: MenuRouterProtocol {

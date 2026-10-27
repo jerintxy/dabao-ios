@@ -12,6 +12,7 @@ final class MenuPresenter: MenuPresenterProtocol, MenuInteractorOutputProtocol {
 
     private var items: [MenuItem] = []
     private var quantities: [String: Int] = [:]
+    nonisolated(unsafe) private var cartObserver: NSObjectProtocol?
 
     init(view: MenuViewProtocol, interactor: MenuInteractorInputProtocol, router: MenuRouterProtocol) {
         self.view = view
@@ -19,11 +20,21 @@ final class MenuPresenter: MenuPresenterProtocol, MenuInteractorOutputProtocol {
         self.router = router
     }
 
+    deinit {
+        if let cartObserver { NotificationCenter.default.removeObserver(cartObserver) }
+    }
+
     // MARK: MenuPresenterProtocol (from the view)
 
     func viewDidLoad() {
         view?.showLoading(true)
         interactor.loadMenu()
+
+        cartObserver = NotificationCenter.default.addObserver(forName: CartStore.didChangeNotification,
+                                                              object: nil,
+                                                              queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.interactor.refreshCartSummary() }
+        }
     }
 
     func didTapAdd(itemID: String) {

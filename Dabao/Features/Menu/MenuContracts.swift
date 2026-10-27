@@ -42,6 +42,7 @@ protocol MenuInteractorInputProtocol: AnyObject {
     func loadMenu()
     func addItem(id: String)
     func removeItem(id: String)
+    func refreshCartSummary()
 }
 
 // MARK: Interactor output (the interactor reports back to the presenter)

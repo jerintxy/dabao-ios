@@ -60,6 +60,10 @@ final class MenuInteractor: MenuInteractorInputProtocol {
         output?.didUpdateCart(currentSummary())
     }
 
+    func refreshCartSummary() {
+        output?.didUpdateCart(currentSummary())
+    }
+
     private func currentSummary() -> CartSummary {
         // Only count the cart if it's for this restaurant.
         guard cart.restaurant?.id == restaurant.id else {
